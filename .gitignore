@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+.vscode/
+.env
+.idea/
+*.log
+*.jpg
+*.jpeg
+*.png
+*.tiff
+*.raw
+*.webp
+*~
