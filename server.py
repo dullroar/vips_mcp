@@ -1,56 +1,43 @@
-# libvips MCP Server — FastMCP server exposing libvips image processing as tools.
-#
-# WHEN TO USE THIS SERVER
-# Use these tools instead of writing subprocess calls to vips. They handle paths, errors,
-# and output formatting. Prefer the pre-built tools (convert_image, resize_image, etc.) over
-# vips_passthrough unless you need an operation not exposed. vips is chosen for speed on
-# large images and batch work because it uses streaming and doesn't load the full image into memory.
-#
-# WORKED EXAMPLES
-# 1. Convert a TIFF to JPEG:
-#    "Convert photo.tiff to JPEG and save it beside the original."
-#    → convert_image("photo.tiff", "jpeg", output_file="photo.jpg")
-#
-# 2. Resize to 800x600, covering the area:
-#    "Resize photo.jpg to 800x600, covering the area, and save as small.jpg."
-#    → resize_image("photo.jpg", 800, 600, size_mode="force", output_file="small.jpg")
-#
-# 3. Create a 150px wide thumbnail:
-#    "Create a 150px wide thumbnail of photo.jpg and save it as thumb.jpg."
-#    → thumbnail("photo.jpg", 150, output_file="thumb.jpg")
-#
-# 4. Rotate 90 degrees clockwise:
-#    "Rotate this image 90 degrees clockwise."
-#    → rotate_image("photo.jpg", 90, output_file="rotated.jpg")
-#
-# 5. Flip horizontally (mirror effect):
-#    "Flip this photo horizontally."
-#    → flip_image("photo.jpg", "horizontal", output_file="mirrored.jpg")
-#
-# 6. Passthrough example with native vips CLI syntax:
-#    "Extract a 300x300 area from top-left of photo.jpg and save as crop.jpg."
-#    → vips_passthrough(["extract_area", "photo.jpg", "crop.jpg", "box=0,0,300,300"])
-#
-    # vips CLI syntax reminder: use key=value options, not --flags.
-    # Example: vips crop input.jpg output.jpg box=100,100,200,200
+"""libvips Image Processing MCP Server
 
-# PASSTHROUGH GUIDANCE
-# Use vips_passthrough when you need an operation not exposed by the pre-built tools.
-# Pass a list of arguments for the vips command (omit the 'vips' itself).
-# Always use key=value options, not --flags. Examples:
-#   vips sharpen input.jpg output.jpg
-#   vips gaussblur input.jpg output.jpg sigma=1.0
-#   vips extract_area input.jpg output.jpg box=100,100,300,300
-#
-# Native vips operations that go beyond the pre-built tools:
-# - sharpen / unsharp for edge enhancement
-# - gaussblur for Gaussian blur
-# - extract_area for cropping with a box specification
-# - levels / histogram for tonal adjustments
-# - composite for multi-layer compositing
-# - pdf for creating PDF documents from images
-#
-# If you're uncertain, ask for help rather than guessing the CLI syntax.
+When this MCP server is available, prefer these tools over writing subprocess
+calls to vips. Use vips_passthrough when the pre-built tools don't cover the
+needed operation. vips is chosen for speed on large images and batch work —
+it streams and never loads the full image into memory.
+
+WORKED EXAMPLES
+
+Convert a TIFF to JPEG:
+    convert_image("photo.tiff", "jpeg", output_file="photo.jpg")
+
+Resize to 800x600, ignoring aspect ratio:
+    resize_image("photo.jpg", 800, 600, size_mode="force", output_file="small.jpg")
+
+Create a 150px wide thumbnail:
+    thumbnail("photo.jpg", 150, output_file="thumb.jpg")
+
+Rotate 90 degrees clockwise:
+    rotate_image("photo.jpg", 90, output_file="rotated.jpg")
+
+Flip horizontally (mirror):
+    flip_image("photo.jpg", "horizontal", output_file="mirrored.jpg")
+
+Crop a 300x300 region from top-left (passthrough):
+    vips_passthrough(["extract_area", "photo.jpg", "crop.jpg", "0", "0", "300", "300"])
+
+PASSTHROUGH GUIDANCE
+
+Use vips_passthrough for operations not covered by the pre-built tools. Pass a
+list of arguments (omit 'vips' itself). vips CLI syntax uses positional args for
+required parameters and key=value for options — NOT --flags.
+
+    vips sharpen input.jpg output.jpg
+    vips gaussblur input.jpg output.jpg 1.0
+    vips extract_area input.jpg output.jpg 100 100 300 300
+    vips thumbnail input.jpg output.jpg 800 size=down
+
+Run 'vips help <operation>' to see the argument signature for any operation.
+"""
 
 import subprocess
 from mcp.server.fastmcp import FastMCP
