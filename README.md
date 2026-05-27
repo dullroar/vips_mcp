@@ -34,6 +34,38 @@ Images do not need to be uploaded to external services merely to be converted or
 
 This becomes a Lego brick: convert → resize → rotate → flip → compress → save.
 
+6. Built-in bulk operations — no loops needed
+
+All image-processing tools accept a glob pattern for `input_path`. Supply a directory path as `output_file` and the tool processes every matched file internally. The LLM makes one tool call instead of N.
+
+---
+
+## Bulk Operations
+
+All tools that accept `input_path` also accept a **glob pattern** (e.g. `"photos/*.jpg"`). When a glob is given, set `output_file` to a **directory path** (e.g. `"converted/"`) — the tool expands the glob and processes every match in a single call.
+
+```python
+# Convert every TIFF in a folder to JPEG — one call, no loop
+convert_image("raw/*.tiff", "jpeg", output_file="jpegs/")
+
+# Resize all photos to 1280px wide — one call, no loop
+resize_image("photos/*.jpg", 1280, output_file="web/")
+
+# Generate 200px thumbnails for all photos — one call, no loop
+thumbnail("photos/*.jpg", 200, output_file="thumbs/")
+
+# Rotate all scans 90 degrees — one call, no loop
+rotate_image("scans/*.jpg", 90, output_file="rotated/")
+
+# Strip ICC profiles from all exports — one call, no loop
+strip_icc("exports/*.png", output_file="clean/")
+
+# Get info for all images in a folder — one call, no loop
+get_info("photos/*.jpg")
+```
+
+The output directory is created automatically if it does not exist.
+
 ---
 
 ## Favorite Sample Workflows
@@ -286,12 +318,18 @@ ngrok http 8000
 Once connected to a Claude client, you can ask naturally:
 
 - *"Convert this TIFF file to JPEG and save it next to the original."*
+- *"Convert all the TIFFs in raw/ to JPEG and put them in jpegs/."*
 - *"Resize photo.jpg to 800 pixels wide, maintaining aspect ratio, and save as small.jpg."*
+- *"Resize all the photos in photos/ to 1280px wide and save them in web/."*
 - *"Create a 150x150 thumbnail of the photo and save it as thumb.jpg."*
+- *"Generate 200px thumbnails for all the photos in photos/ and save them in thumbs/."*
 - *"Rotate this image 90 degrees clockwise."*
+- *"Rotate all the scans in scans/ by 90 degrees and save them in rotated/."*
 - *"Flip this photo horizontally (mirror effect)."*
 - *"Remove the ICC profile from this image."*
+- *"Strip ICC profiles from all the PNGs in exports/ and save them in clean/."*
 - *"What are the dimensions, format, and color space of this image?"*
+- *"Show me the dimensions and format of every image in photos/."*
 
 The LLM translates your plain-English request into the appropriate vips tool parameters — you don't need to know vips flags or format names.
 
