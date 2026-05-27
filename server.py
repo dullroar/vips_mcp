@@ -112,25 +112,18 @@ def resize_image(
     else:
         height_str = f"height={height}"
     
-    # Build thumbnail command with size options
-    # vips thumbnail input.jpg output.jpg 800 [height=600] [size=force]
+    if not output_file:
+        return "Error: output_file is required for resize_image (binary output cannot be returned inline)"
+
+    cmd = ["vips", "thumbnail", input_path, output_file, str(width)]
     if height_str:
-        cmd = ["vips", "thumbnail", input_path, output_file, width, height_str]
-    else:
-        cmd = ["vips", "thumbnail", input_path, output_file, width]
-    
+        cmd.append(height_str)
     if size_mode != "both":
         cmd.append(f"size={size_mode}")
-    
     cmd.extend(extra_args or [])
-    
+
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=False
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         if result.returncode != 0:
             return f"Error: {result.stderr}"
         return f"Written to {output_file}"
@@ -177,24 +170,18 @@ def thumbnail(
     else:
         height_str = f"height={height}"
     
-    # vips thumbnail input.jpg thumb.jpg 150 [height=150]
+    if not output_file:
+        return "Error: output_file is required for thumbnail (binary output cannot be returned inline)"
+
+    cmd = ["vips", "thumbnail", input_path, output_file, str(width)]
     if height_str:
-        cmd = ["vips", "thumbnail", input_path, output_file, width, height_str]
-    else:
-        cmd = ["vips", "thumbnail", input_path, output_file, width]
-    
+        cmd.append(height_str)
     if size_mode != "both":
         cmd.append(f"size={size_mode}")
-    
     cmd.extend(extra_args or [])
-    
+
     try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            check=False
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
         if result.returncode != 0:
             return f"Error: {result.stderr}"
         return f"Written to {output_file}"
@@ -475,13 +462,9 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
-    import uvicorn
-    
-    config = uvicorn.Config(
-        "server:app",
-        host=args.host,
-        port=args.port,
-        log_level="info",
-    )
-    server = uvicorn.Server(config)
-    server.run()
+    if args.transport == "sse":
+        mcp.settings.host = args.host
+        mcp.settings.port = args.port
+        mcp.run(transport="sse")
+    else:
+        mcp.run()
