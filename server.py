@@ -30,21 +30,16 @@ def convert_image(
     Examples
     --------
     Convert TIFF to JPEG:
-        input_path="photo.tiff", output_format="jpeg", output_file="photo.jpg"
+        convert_image("photo.tiff", "jpeg", output_file="photo.jpg")
     
     Convert RAW to PNG:
-        input_path="photo.raw", output_format="png", output_file="photo.png"
+        convert_image("photo.raw", "png", output_file="photo.png")
     """
     args = extra_args or []
     
     if output_file:
-        cmd = ["vips", "resize", input_path, output_file, "--without-giop"]
-        # Override output format if needed
-        if output_format:
-            cmd.extend(["-o", f"{output_file}.{output_format}"])
-            cmd = ["vips", "save", input_path, f"{output_file}.{output_format}"]
-        else:
-            cmd = ["vips", "save", input_path, output_file]
+        # Format conversion done by file extension on output path
+        cmd = ["vips", "copy", input_path, f"{output_file}.{output_format}"]
         
         cmd.extend(args)
         
@@ -57,11 +52,11 @@ def convert_image(
             )
             if result.returncode != 0:
                 return f"Error: {result.stderr}"
-            return f"Written to {output_file}"
+            return f"Written to {output_file}.{output_format}"
         except Exception as e:
             return f"Error: {e}"
     else:
-        cmd = ["vips", "save", input_path, f"stdout.{output_format}"]
+        cmd = ["vips", "copy", input_path, f"stdout.{output_format}"]
         cmd.extend(args)
         
         try:
@@ -83,11 +78,11 @@ def resize_image(
     input_path: str,
     width: int,
     height: int | None = None,
-    fit_mode: str = "cover",
+    size_mode: str = "both",
     output_file: str | None = None,
     extra_args: list[str] | None = None,
 ) -> str:
-    """Resize an image to given dimensions.
+    """Resize an image to given dimensions using vips thumbnail.
     
     Parameters
     ----------
@@ -97,9 +92,8 @@ def resize_image(
         Target width in pixels.
     height : int, optional
         Target height in pixels. If None, maintains aspect ratio.
-    fit_mode : str, default "cover"
-        Fit mode: "cover" (cover entire area), "contain" (entire image visible),
-        "crop" (crop to fit).
+    size_mode : str, default "both"
+        Resize mode: "both" (default), "up", "down", "force" (ignore aspect ratio).
     output_file : str, optional
         Path to write the output. If omitted, returns the content.
     extra_args : list[str], optional
@@ -108,61 +102,40 @@ def resize_image(
     Examples
     --------
     Resize to 800x600, covering the area:
-        resize_image("photo.jpg", 800, 600, fit_mode="cover", output_file="small.jpg")
+        resize_image("photo.jpg", 800, 600, size_mode="force", output_file="small.jpg")
     
     Resize maintaining aspect ratio:
-        resize_image("photo.jpg", 800, fit_mode="cover", output_file="small.jpg")
+        resize_image("photo.jpg", 800, size_mode="both", output_file="small.jpg")
     """
     if height is None:
-        # Maintain aspect ratio - use vips resize without height
         height_str = ""
     else:
-        height_str = f"{height}"
+        height_str = f"height={height}"
     
-    if output_file:
-        if height_str:
-            cmd = ["vips", "resize", input_path, output_file, 
-                   f"--width={width}", f"--height={height_str}", 
-                   f"--fit={fit_mode}"]
-        else:
-            cmd = ["vips", "resize", input_path, output_file,
-                   f"--width={width}", f"--fit={fit_mode}"]
-        
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return f"Written to {output_file}"
-        except Exception as e:
-            return f"Error: {e}"
+    # Build thumbnail command with size options
+    # vips thumbnail input.jpg output.jpg 800 [height=600] [size=force]
+    if height_str:
+        cmd = ["vips", "thumbnail", input_path, output_file, width, height_str]
     else:
-        if height_str:
-            cmd = ["vips", "resize", input_path, f"stdout.{width}x{height}",
-                   f"--fit={fit_mode}"]
-        else:
-            cmd = ["vips", "resize", input_path, f"stdout.{width}", f"--fit={fit_mode}"]
-        
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return result.stdout if result.stdout else "Resize complete"
-        except Exception as e:
-            return f"Error: {e}"
+        cmd = ["vips", "thumbnail", input_path, output_file, width]
+    
+    if size_mode != "both":
+        cmd.append(f"size={size_mode}")
+    
+    cmd.extend(extra_args or [])
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode != 0:
+            return f"Error: {result.stderr}"
+        return f"Written to {output_file}"
+    except Exception as e:
+        return f"Error: {e}"
 
 
 @mcp.tool()
@@ -170,11 +143,11 @@ def thumbnail(
     input_path: str,
     width: int,
     height: int | None = None,
-    fit_mode: str = "cover",
+    size_mode: str = "both",
     output_file: str | None = None,
     extra_args: list[str] | None = None,
 ) -> str:
-    """Generate a thumbnail of a given size.
+    """Generate a thumbnail of a given size using vips thumbnail.
     
     Parameters
     ----------
@@ -184,8 +157,8 @@ def thumbnail(
         Maximum width of the thumbnail.
     height : int, optional
         Maximum height of the thumbnail. If None, maintains aspect ratio.
-    fit_mode : str, default "cover"
-        Fit mode: "cover" (cover entire area), "contain" (entire image visible).
+    size_mode : str, default "both"
+        Resize mode: "both" (default), "up", "down", "force" (ignore aspect ratio).
     output_file : str, optional
         Path to write the output. If omitted, returns the content.
     extra_args : list[str], optional
@@ -197,71 +170,55 @@ def thumbnail(
         thumbnail("photo.jpg", 150, 150, output_file="thumb.jpg")
     
     Create a 200px wide thumbnail maintaining aspect ratio:
-        thumbnail("photo.jpg", 200, fit_mode="contain", output_file="thumb.jpg")
+        thumbnail("photo.jpg", 200, output_file="thumb.jpg")
     """
-    height_str = f"{height}" if height else ""
-    
-    if output_file:
-        if height_str:
-            cmd = ["vips", "resize", input_path, output_file,
-                   f"--width={width}", f"--height={height_str}",
-                   f"--fit={fit_mode}", "--without-giop"]
-        else:
-            cmd = ["vips", "resize", input_path, output_file,
-                   f"--width={width}", f"--fit={fit_mode}", "--without-giop"]
-        
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return f"Written to {output_file}"
-        except Exception as e:
-            return f"Error: {e}"
+    if height is None:
+        height_str = ""
     else:
-        if height_str:
-            cmd = ["vips", "resize", input_path, f"stdout.{width}x{height}",
-                   f"--fit={fit_mode}", "--without-giop"]
-        else:
-            cmd = ["vips", "resize", input_path, f"stdout.{width}",
-                   f"--fit={fit_mode}", "--without-giop"]
-        
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return result.stdout if result.stdout else "Thumbnail complete"
-        except Exception as e:
-            return f"Error: {e}"
+        height_str = f"height={height}"
+    
+    # vips thumbnail input.jpg thumb.jpg 150 [height=150]
+    if height_str:
+        cmd = ["vips", "thumbnail", input_path, output_file, width, height_str]
+    else:
+        cmd = ["vips", "thumbnail", input_path, output_file, width]
+    
+    if size_mode != "both":
+        cmd.append(f"size={size_mode}")
+    
+    cmd.extend(extra_args or [])
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode != 0:
+            return f"Error: {result.stderr}"
+        return f"Written to {output_file}"
+    except Exception as e:
+        return f"Error: {e}"
 
 
 @mcp.tool()
 def rotate_image(
     input_path: str,
-    degrees: int,
+    angle: int,
     output_file: str | None = None,
     extra_args: list[str] | None = None,
 ) -> str:
     """Rotate an image by given degrees.
     
+    For multiples of 90, use vips rot with d90, d180, d270.
+    For arbitrary angles, use vips similarity with angle=X.
+    
     Parameters
     ----------
     input_path : str
         Path to the input image file.
-    degrees : int
+    angle : int
         Rotation angle in degrees (90, 180, 270, or any value for arbitrary rotation).
     output_file : str, optional
         Path to write the output. If omitted, returns the content.
@@ -275,45 +232,47 @@ def rotate_image(
     
     Rotate 180 degrees:
         rotate_image("photo.jpg", 180, output_file="rotated.jpg")
+    
+    Rotate arbitrary angle (45 degrees):
+        rotate_image("photo.jpg", 45, output_file="rotated.jpg")
     """
     if output_file:
-        cmd = ["vips", "rotate", input_path, output_file, f"--degrees={degrees}"]
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return f"Written to {output_file}"
-        except Exception as e:
-            return f"Error: {e}"
+        # Multiples of 90 use vips rot: vips rot input.jpg output.jpg d90/d180/d270
+        # Arbitrary angles use vips similarity: vips similarity input.jpg output.jpg angle=45
+        if angle % 90 == 0:
+            # Use rot for multiples of 90
+            rotation_codes = {90: "d90", 180: "d180", 270: "d270", -90: "d270", -180: "d180", -270: "d90"}
+            cmd = ["vips", "rot", input_path, output_file, rotation_codes.get(abs(angle), f"d{angle}")]
+        else:
+            # Use similarity for arbitrary angles
+            cmd = ["vips", "similarity", input_path, output_file, f"angle={angle}"]
     else:
-        cmd = ["vips", "rotate", input_path, f"stdout", f"--degrees={degrees}"]
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return result.stdout if result.stdout else "Rotate complete"
-        except Exception as e:
-            return f"Error: {e}"
+        if angle % 90 == 0:
+            rotation_codes = {90: "d90", 180: "d180", 270: "d270", -90: "d270", -180: "d180", -270: "d90"}
+            cmd = ["vips", "rot", input_path, "stdout", rotation_codes.get(abs(angle), f"d{angle}")]
+        else:
+            cmd = ["vips", "similarity", input_path, "stdout", f"angle={angle}"]
+    
+    cmd.extend(extra_args or [])
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode != 0:
+            return f"Error: {result.stderr}"
+        return f"Written to {output_file}"
+    except Exception as e:
+        return f"Error: {e}"
 
 
 @mcp.tool()
 def flip_image(
     input_path: str,
-    direction: str = "both",
+    direction: str = "horizontal",
     output_file: str | None = None,
     extra_args: list[str] | None = None,
 ) -> str:
@@ -323,8 +282,8 @@ def flip_image(
     ----------
     input_path : str
         Path to the input image file.
-    direction : str, default "both"
-        Flip direction: "both" (flip both), "horizontal", "vertical".
+    direction : str, default "horizontal"
+        Flip direction: "horizontal" or "vertical".
     output_file : str, optional
         Path to write the output. If omitted, returns the content.
     extra_args : list[str], optional
@@ -338,47 +297,26 @@ def flip_image(
     Flip vertically:
         flip_image("photo.jpg", "vertical", output_file="flipped.jpg")
     """
-    if direction == "both":
-        flip_args = "--both"
-    elif direction == "horizontal":
-        flip_args = "--horizontal"
-    elif direction == "vertical":
-        flip_args = "--vertical"
-    else:
-        return "Error: Invalid direction. Use 'both', 'horizontal', or 'vertical'."
-    
+    # vips flip input.jpg output.jpg horizontal/vertical
     if output_file:
-        cmd = ["vips", "flip", input_path, output_file, flip_args]
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return f"Written to {output_file}"
-        except Exception as e:
-            return f"Error: {e}"
+        cmd = ["vips", "flip", input_path, output_file, direction]
     else:
-        cmd = ["vips", "flip", input_path, "stdout", flip_args]
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return result.stdout if result.stdout else "Flip complete"
-        except Exception as e:
-            return f"Error: {e}"
+        cmd = ["vips", "flip", input_path, "stdout", direction]
+    
+    cmd.extend(extra_args or [])
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode != 0:
+            return f"Error: {result.stderr}"
+        return f"Written to {output_file}"
+    except Exception as e:
+        return f"Error: {e}"
 
 
 @mcp.tool()
@@ -403,38 +341,26 @@ def strip_icc(
     Remove ICC profile and save:
         strip_icc("photo.jpg", output_file="photo_no_icc.jpg")
     """
+    # vips copy input.jpg output.jpg strip=1
     if output_file:
-        cmd = ["vips", "remove-icc", input_path, output_file]
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return f"Written to {output_file}"
-        except Exception as e:
-            return f"Error: {e}"
+        cmd = ["vips", "copy", input_path, output_file, "strip=1"]
     else:
-        cmd = ["vips", "remove-icc", input_path, "stdout"]
-        cmd.extend(extra_args or [])
-        
-        try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=False
-            )
-            if result.returncode != 0:
-                return f"Error: {result.stderr}"
-            return result.stdout if result.stdout else "ICC profile removed"
-        except Exception as e:
-            return f"Error: {e}"
+        cmd = ["vips", "copy", input_path, "stdout", "strip=1"]
+    
+    cmd.extend(extra_args or [])
+    
+    try:
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if result.returncode != 0:
+            return f"Error: {result.stderr}"
+        return f"Written to {output_file}"
+    except Exception as e:
+        return f"Error: {e}"
 
 
 @mcp.tool()
@@ -461,7 +387,8 @@ def get_info(
     Get info about an image:
         get_info("photo.jpg")
     """
-    cmd = ["vips", "info", input_path]
+    # vips header input.jpg
+    cmd = ["vips", "header", input_path]
     cmd.extend(extra_args or [])
     
     try:
@@ -480,18 +407,18 @@ def get_info(
 
 @mcp.tool()
 def vips_passthrough(
-    arguments: str,
+    arguments: list[str],
 ) -> str:
     """Run arbitrary vips CLI commands.
     
-    Pass any vips CLI command as a string. The command will be executed
+    Pass any vips CLI command as a list of arguments. The command will be executed
     and the output (stdout + stderr) will be returned.
     
     Parameters
     ----------
-    arguments : str
-        The complete vips CLI command to execute. For example:
-        "vips resize input.jpg output.jpg --width=800 --height=600"
+    arguments : list[str]
+        Arguments for the vips command. Does NOT include 'vips' itself.
+        For example: ["copy", "input.jpg", "output.jpg", "strip=1"]
     
     Returns
     -------
@@ -500,12 +427,15 @@ def vips_passthrough(
     
     Examples
     --------
-    "vips shrink input.jpg output.jpg --with-giop --interpolation=best"
-    "vips concat img1.jpg img2.jpg output.jpg"
+    ["copy", "input.jpg", "output.jpg"]
+    ["thumbnail", "input.jpg", "thumb.jpg", 150, "height=150"]
     """
+    # Accept list[str] NOT a plain string (to handle paths with spaces)
+    cmd = ["vips"] + arguments
+    
     try:
         result = subprocess.run(
-            ["vips"] + arguments.split(),
+            cmd,
             capture_output=True,
             text=True,
             check=False
@@ -542,11 +472,16 @@ if __name__ == "__main__":
         default=8000,
         help="Bind port for SSE transport (default: 8000)",
     )
+    
     args = parser.parse_args()
     
-    if args.transport == "sse":
-        mcp.settings.host = args.host
-        mcp.settings.port = args.port
-        mcp.run(transport="sse")
-    else:
-        mcp.run()
+    import uvicorn
+    
+    config = uvicorn.Config(
+        "server:app",
+        host=args.host,
+        port=args.port,
+        log_level="info",
+    )
+    server = uvicorn.Server(config)
+    server.run()
