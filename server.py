@@ -415,8 +415,8 @@ def get_info(
     Get info about an image:
         get_info("photo.jpg")
     """
-    # vips header input.jpg
-    cmd = ["vips", "header", input_path]
+    # vipsheader is the correct standalone CLI tool (not a vips subcommand)
+    cmd = ["vipsheader", input_path]
     cmd.extend(extra_args or [])
     
     try:
