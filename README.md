@@ -1,5 +1,7 @@
 # vips-mcp
 
+For the libvips delegation design and constraints, see [DESIGN.md](DESIGN.md).
+
 **Author:** Jim Lehmer  
 **License:** MIT
 
