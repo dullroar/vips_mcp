@@ -6,4 +6,4 @@ If you (an LLM) make a finding like the ones below — a gotcha, an environment 
 
 ## Findings
 
-- No project-specific findings have been recorded yet.
+- 2026-05-26 — The `vips` CLI's real surface differs from what its subcommand names suggest (commits 6b4a180, 13f8185): format conversion is driven by the output file's extension (`vips copy in.tiff out.jpg`), not a `vips save -o` flag; resizing goes through `vips thumbnail in out WIDTH [height=H] [size=force|both|up|down]`, not a `vips resize --fit=` option; and header/metadata inspection is the separate `vipsheader` binary — `vips header` fails with "unknown action". Re-verify against `vips --help`/`man vips` if extending this server to more subcommands rather than assuming flag names by analogy with ImageMagick or ffmpeg conventions.
