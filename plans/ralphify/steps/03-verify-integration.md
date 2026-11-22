@@ -24,10 +24,30 @@ Run `git merge-base HEAD plan/ralphify` to identify the integrated base commit. 
 
 ## Results
 
-- Base commit: PENDING
-- Commands: PENDING
-- Docker build: PENDING
-- Tests: PENDING
-- Skips: PENDING
-- FUSE: PENDING
-- UTC date: PENDING
+- Base commit: `4536603e5cf1a3198dd8fbc7ae8d48133a0e6471` from `git merge-base HEAD plan/ralphify`.
+- Commands: PASS `python3 scripts/check_context.py && bash scripts/test_docker.sh && git diff --check`.
+- Docker build: PASS The gate ran `docker build --tag "$image" "$snapshot"`.
+  The tag and snapshot were specific to the run. The README command
+  `docker build -t vips-mcp .` also passed.
+- Tests: PASS The context checks passed on the host and in the container.
+  The gate ran `python -m unittest discover -s tests -v` in a read-only
+  container with `--network none`. One test passed. It initialized MCP over
+  stdio, called `resize_image` on a synthetic 40 × 30 PNG, and verified a
+  20 × 15 PNG with `vipsheader`.
+- Skips: 0. The suite has no opt-in checks.
+- FUSE: n/a.
+- UTC date: 2026-11-22.
+
+## Links and entry points
+
+- Both GitHub links in `AGENTS.md` returned HTTP 200. The structural-change
+  rule requires both references and covers layout, plan format, generated
+  indexes, worktrees and validation commands.
+- `docker run --rm -i vips-mcp` accepted an MCP `initialize` request through
+  the default container command. `python /app/server.py --help` listed stdio,
+  SSE, host and port options. A Git comparison with `dfe242e` showed no changes
+  to `server.py` or `requirements.txt`.
+- The runner accepted the README flags `--repo`, `--plan ralphify` and
+  `--agent codex` with `--help`. A `--status` check from the step worktree
+  could not use the plan worktree. The README directs the runner command to
+  the main checkout. The active driver owns the plan run.
