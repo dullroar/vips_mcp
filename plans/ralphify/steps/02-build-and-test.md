@@ -1,6 +1,6 @@
 ---
 id: 02-build-and-test
-status: pending
+status: done
 depends_on: [01-adopt-context]
 touches:
   - Dockerfile
@@ -14,7 +14,9 @@ touches:
 lane: none
 requirements: [R2]
 gate: bash scripts/test_docker.sh && python3 scripts/check_context.py && git diff --check
-evidence: ""
+evidence: gate passed 2026-11-22 (driver-verified)
+claimed_by: codex cli-default
+claimed_at: "2026-11-22T22:14:12Z"
 ---
 
 # 02-build-and-test
@@ -28,3 +30,13 @@ Touches `Dockerfile`, `.dockerignore`, `README.md`, `scripts/test_docker.sh`, ge
 ## Repository gate
 
 Install the libvips CLI and the existing Python requirements. Add a stdio test under `tests/` that initializes and uses a real image operation on a synthetic local image. Verify output dimensions or format using the native CLI. Document the stdio container command with stdin open. Preserve existing tool names and arguments.
+
+## Results
+
+- The full step gate passed on 2026-11-22 UTC. The image built from the linked
+  worktree snapshot. The context checks passed inside and outside the container.
+- The stdio test called `resize_image` on a synthetic 40 × 30 PNG.
+  `vipsheader` confirmed the output dimensions of 20 × 15 pixels.
+- The first run selected MCP 2.3.0 and failed at the server's `FastMCP` import.
+  The Docker build and the host install command now require MCP 1.x. The
+  passing build used MCP 1.30.0 with the existing requirements file.
