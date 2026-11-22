@@ -1,0 +1,14 @@
+name: context
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check indexes, plans, links and secrets
+        run: python3 scripts/check_context.py
+      - name: Test the Docker image
+        run: bash scripts/test_docker.sh

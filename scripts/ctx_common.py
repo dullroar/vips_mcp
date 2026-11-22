@@ -1,19 +1,25 @@
-"""Shared helpers for the context-governance scripts (standard library only)."""
+"""Shared helpers for the repo scripts (standard library only).
+
+Run me when: never directly. Other scripts in this folder import it.
+"""
 from __future__ import annotations
 
 import re
 import subprocess
 from pathlib import Path
 
-BEGIN = "<!-- BEGIN GENERATED CONTEXT INDEX -->"
-END = "<!-- END GENERATED CONTEXT INDEX -->"
+BEGIN = "<!-- BEGIN GENERATED INDEX -->"
+END = "<!-- END GENERATED INDEX -->"
+LEGACY_BEGIN = "<!-- BEGIN GENERATED CONTEXT INDEX -->"
+LEGACY_END = "<!-- END GENERATED CONTEXT INDEX -->"
 SKIP_DIRS = {".git", ".venv", "node_modules", "build", "dist", "__pycache__", ".hypothesis"}
 
 
 def repo_root(start: Path | None = None) -> Path:
     here = (start or Path.cwd()).resolve()
     for candidate in [here, *here.parents]:
-        if (candidate / ".git").exists():
+        marker = candidate / ".git"
+        if marker.is_file() or (marker / "HEAD").is_file():
             return candidate
     return here
 

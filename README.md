@@ -219,10 +219,47 @@ python -m venv .venv
 .venv\Scripts\activate        # Windows
 # source .venv/bin/activate   # macOS/Linux
 
-pip install -r requirements.txt
+pip install -r requirements.txt "mcp<2"
 ```
 
+The server uses the FastMCP API from the MCP 1.x SDK.
+
 ---
+
+## Docker
+
+Use Docker with Linux containers. The build downloads the base image, libvips and
+the Python dependencies. The server runs as a non-root user.
+
+```bash
+docker build -t vips-mcp .
+docker run --rm -i vips-mcp
+```
+
+Keep stdin open with `-i` for the MCP stdio connection. Omit `-t` so the
+connection uses plain streams. To process host files, mount the input and output
+directory and use its container path in tool arguments. This example uses the
+current user's permissions on a Linux host.
+
+```bash
+mkdir -p images
+docker run --rm -i --user "$(id -u):$(id -g)" \
+  --mount "type=bind,src=$PWD/images,dst=/images" vips-mcp
+```
+
+Run the Docker gate from the repository root. It uses the worktree copies of
+files listed in the Git index. Stage new source files before you run it. The gate runs
+context checks and an MCP resize test with a synthetic image and no network.
+
+```bash
+bash scripts/test_docker.sh
+```
+
+With `ralph-looper` on your `PATH`, run the migration plan from the main checkout.
+
+```bash
+ralph-looper --repo "$PWD" --plan ralphify --agent codex
+```
 
 ## MCP client configuration
 
