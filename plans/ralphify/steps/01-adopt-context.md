@@ -1,6 +1,6 @@
 ---
 id: 01-adopt-context
-status: pending
+status: done
 depends_on: []
 touches:
   - AGENTS.md
@@ -27,7 +27,9 @@ touches:
 lane: none
 requirements: [R1]
 gate: python3 scripts/build_indexes.py --check && python3 scripts/check_context.py && git diff --check
-evidence: ""
+evidence: gate passed 2026-11-22 (driver-verified)
+claimed_by: codex cli-default
+claimed_at: "2026-11-22T22:10:34Z"
 ---
 
 # 01-adopt-context
@@ -41,3 +43,10 @@ Adopt `docs/README.md`, `memory/AGENTS.md`, `plans/AGENTS.md`, `scripts/AGENTS.m
 Touches the agent contracts, the relevant index and checker files, current plan templates, references to the old layout, `.github/workflows/context.yml`, and this step file. Review the exact layout diff and test that broken links, stale indexes, malformed active plans, and the existing secret scan still fail their checks. Gate: `python3 scripts/build_indexes.py --check && python3 scripts/check_context.py && git diff --check`.
 
 Use `main` as the workflow base branch. Copy the pinned inputs from `plans/ralphify/template-inputs/`. Remove the final `.txt` suffix on copy.
+
+## Results
+
+- The context gate passed on 2026-11-22 UTC. The context workflow runs the same checks on pull requests and pushes to `main`.
+- A standalone source snapshot passed `python3 scripts/check_context.py`, `python3 scripts/check_links.py --all`, and both previous checker commands. A new plan copied from the template passed after index generation.
+- In the snapshot, each injected fault caused exit code 1 with the expected diagnostic. The faults were a broken local link, a stale agent index, a stale design index, an unknown dependency, an unknown requirement, overlapping parallel steps and a synthetic token prefix.
+- All three archived template files match the original bytes. The revision keeps the local design index and moves the root documentation index to the template's manual format.

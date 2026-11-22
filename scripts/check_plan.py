@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Validate plan step files, check parallel safety, and print derived status.
 
-Layout: plans/<plan>/spec.md and plans/<plan>/steps/<id>.md (plans/TEMPLATE and plans/archive
-are skipped). Each step has front matter: id, status (pending|in_progress|done|blocked),
-depends_on, touches, lane, gate, requirements, and (once done) evidence.
+Run me when: I created or changed a plan or a step, and before a plan loop starts.
+
+Layout: plans/<plan>/{goal,plan,spec}.md and plans/<plan>/steps/<id>.md.
+Skip plans/for-each-plan and plans/archive. Steps require id, status
+(pending|in_progress|done|blocked), depends_on, touches, lane, gate,
+and requirements. A done step also requires evidence.
 Requirements are headings in spec.md such as `### R1. Title`.
 
 Usage: check_plan.py [ROOT]   (exit 1 on any error; conservative overlaps are errors)
@@ -40,7 +43,10 @@ def check_plan(plan: Path, root: Path) -> list[str]:
     errors: list[str] = []
     name = plan.relative_to(root).as_posix()
     steps: dict[str, dict] = {}
-    for path in sorted((plan / "steps").glob("*.md")):
+    step_files = sorted((plan / "steps").glob("*.md"))
+    if not step_files:
+        errors.append(f"{name}: no step files")
+    for path in step_files:
         meta, _ = split_frontmatter(path.read_text(encoding="utf-8"))
         missing = [k for k in REQUIRED if k not in meta]
         if missing:
@@ -55,6 +61,10 @@ def check_plan(plan: Path, root: Path) -> list[str]:
         if not meta["gate"]:
             errors.append(f"{name}/steps/{path.name}: empty gate")
         steps[path.stem] = meta
+
+    for required in ("goal.md", "plan.md"):
+        if not (plan / required).is_file():
+            errors.append(f"{name}: missing {required}")
 
     spec = plan / "spec.md"
     spec_reqs = set(re.findall(r"^#{2,4}\s+(R\d+)\b", spec.read_text(encoding="utf-8"), re.M)) if spec.exists() else set()
@@ -127,7 +137,7 @@ def main(argv: list[str]) -> int:
     plans = root / "plans"
     errors: list[str] = []
     if plans.is_dir():
-        for plan in sorted(p for p in plans.iterdir() if p.is_dir() and p.name not in {"TEMPLATE", "archive"}):
+        for plan in sorted(p for p in plans.iterdir() if p.is_dir() and p.name not in {"for-each-plan", "archive"}):
             errors.extend(check_plan(plan, root))
     for err in errors:
         print(f"ERROR {err}")
