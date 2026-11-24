@@ -1,6 +1,6 @@
 ---
 id: a02-apply
-status: pending
+status: in_progress
 depends_on: [a01-audit]
 touches:
   - scripts/check_context.py
@@ -60,4 +60,5 @@ If you cannot finish, write "Resume notes" below. Keep the status `in_progress`.
 
 ## Resume notes
 
-(none)
+Work is complete except the Docker part of the gate. This session cannot run Docker, so `bash scripts/test_docker.sh` was not run here. The driver must run it. Checks run here: `check_context.py`, `build_indexes.py --check`, `secret_guard.py --tracked`, the grep checks and `git diff --check`. All passed on 2026-11-24. The new Dockerfile `RUN` line (shim cache build) is untested until the Docker gate runs.
+`status` stays `in_progress` until the driver confirms the Docker gate.
