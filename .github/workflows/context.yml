@@ -6,7 +6,7 @@ on:
 permissions:
   contents: read
 jobs:
-  controls:
+  controls-renamed:
     runs-on: ubuntu-latest
     permissions:
       contents: read
