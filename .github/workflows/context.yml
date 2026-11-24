@@ -1,6 +1,8 @@
 name: context
 on:
   pull_request:
+    paths:
+      - 'docs/**'
   push:
     branches: [main]
 permissions:
